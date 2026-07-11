@@ -1,25 +1,43 @@
-import { useNavigate } from 'react-router-dom'
-import { Card, Chip, Tabs } from '../components/ui'
-import { invoices, lots, fmt, clientById, payChip } from '../data/fake'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Card, Chip } from '../components/ui'
+import { invoices, fmt, clientById, payChip } from '../data/fake'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+
+// One merged view: every payment with its fiscal metadata inline.
+// Capital-gains summaries live in Report; a dedicated tax-ledger surface
+// returns when disposals ship (v1.1+).
+
+const fiscalMeta: Record<string, { rate: string; src: string; ts: string }> = {
+  p1: { rate: '88.298 €/BTC', src: 'Kraken', ts: '2026-05-20 14:32' },
+  p2: { rate: '87.719 €/BTC', src: 'Kraken', ts: '2026-06-04 09:15' },
+  p3: { rate: '0,9987 €/USDC', src: 'CoinGecko', ts: '2026-06-30 16:48' },
+}
 
 export default function Pagamenti() {
-  const [tab, setTab] = useState('Payments')
   const nav = useNavigate()
+  const [openRow, setOpenRow] = useState<string | null>(null)
   const pays = invoices.flatMap(i => i.payments.map(p => ({ ...p, inv: i })))
 
   return (
     <div className="stack">
-      <Tabs tabs={['Payments', 'Crypto ledger']} active={tab} onChange={setTab} />
-
-      {tab === 'Payments' && (
-        <Card>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table">
-              <thead><tr><th>Date</th><th>Invoice</th><th>Client</th><th>Method</th><th>Crypto</th><th>EUR at receipt</th><th>Status</th></tr></thead>
-              <tbody>
-                {pays.map(p => (
-                  <tr key={p.id} className="rowlink" onClick={() => nav('/fatture/' + p.inv.id)}>
+      <div>
+        <div className="section-title">Payments received</div>
+        <div style={{ fontSize: 13.5, color: 'var(--grey-dark)' }}>
+          Every payment matched to its invoice — bank and crypto. Crypto payments carry their EUR value at the block timestamp, ready for your tax report.
+        </div>
+      </div>
+      <Card>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table">
+            <thead><tr><th></th><th>Date</th><th>Invoice</th><th>Client</th><th>Method</th><th>Received</th><th>EUR at receipt</th><th>Status</th></tr></thead>
+            <tbody>
+              {pays.map(p => {
+                const meta = fiscalMeta[p.id]
+                const expanded = openRow === p.id
+                return [
+                  <tr key={p.id} className="rowlink" onClick={() => meta ? setOpenRow(expanded ? null : p.id) : nav('/fatture/' + p.inv.id)}>
+                    <td style={{ width: 28, color: 'var(--grey)' }}>{meta ? (expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />) : null}</td>
                     <td className="mono">{p.date}</td>
                     <td className="mono">{p.inv.n}</td>
                     <td>{clientById(p.inv.clientId).name}</td>
@@ -27,50 +45,30 @@ export default function Pagamenti() {
                     <td className="mono">{p.crypto ?? '—'}</td>
                     <td className="num" style={{ fontWeight: 600 }}>{fmt(p.eur)}</td>
                     <td><Chip {...payChip['confirmed']} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      {tab === 'Crypto ledger' && (
-        <>
-          <div className="banner">
-            <span>ⓘ</span>
-            <span><b>Provisional cost-basis method (FIFO)</b> — awaiting your commercialista's confirmation of the final method (FIFO or LIFO). The lots don't change, only the disposal order.</span>
-          </div>
-          <Card title="Cost-basis lots">
-            <div style={{ overflowX: 'auto' }}>
-              <table className="table">
-                <thead><tr><th>Asset</th><th>Quantity</th><th>EUR value at receipt</th><th>Rate</th><th>Source</th><th>Block timestamp</th><th>Invoice</th></tr></thead>
-                <tbody>
-                  {lots.map(l => (
-                    <tr key={l.id}>
-                      <td style={{ fontWeight: 600 }}>{l.asset}</td>
-                      <td className="mono">{l.qty}</td>
-                      <td className="num" style={{ fontWeight: 600 }}>{fmt(l.eur)}</td>
-                      <td className="mono">{l.rate}</td>
-                      <td style={{ fontSize: 13 }}>{l.src}</td>
-                      <td className="mono">{l.ts}</td>
-                      <td className="mono">{l.invoice}</td>
+                  </tr>,
+                  expanded && meta && (
+                    <tr key={p.id + '-x'}>
+                      <td colSpan={8} style={{ background: 'var(--surface-alt)', borderRadius: 8 }}>
+                        <div className="row" style={{ gap: 32, padding: '6px 8px', fontSize: 13, flexWrap: 'wrap' }}>
+                          <span><span className="mono" style={{ color: 'var(--grey)' }}>RATE</span>&nbsp; {meta.rate}</span>
+                          <span><span className="mono" style={{ color: 'var(--grey)' }}>SOURCE</span>&nbsp; {meta.src}</span>
+                          <span><span className="mono" style={{ color: 'var(--grey)' }}>BLOCK TIME</span>&nbsp; {meta.ts}</span>
+                          <span><span className="mono" style={{ color: 'var(--grey)' }}>COST-BASIS LOT</span>&nbsp; created · held</span>
+                          <span className="spacer" />
+                          <button className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); nav('/fatture/' + p.inv.id) }}>View invoice →</button>
+                        </div>
+                      </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-          <div className="grid g2">
-            <Card title="YTD capital gains — 33% rate">
-              <div className="kpi"><div className="value" style={{ fontSize: 30 }}>€ 0,00</div><div className="sub">No disposals recorded in 2026 (BTC, USDC)</div></div>
-            </Card>
-            <Card title="YTD capital gains — 26% rate (EUR EMTs)">
-              <div className="kpi"><div className="value" style={{ fontSize: 30 }}>€ 0,00</div><div className="sub">EURC not enabled — reduced rate under L. 199/2025</div></div>
-            </Card>
-          </div>
-        </>
-      )}
+                  ),
+                ]
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--grey)' }}>
+          Capital gains and the cost-basis method live in <a href="#/report" style={{ color: 'var(--orange-deep)' }}>Reports</a> — nothing to do here until you dispose of crypto.
+        </div>
+      </Card>
     </div>
   )
 }

@@ -71,8 +71,10 @@ export function InvoiceEditor() {
   const [sent, setSent] = useState(false)
   const nav = useNavigate()
 
+  const client = clientId ? clientById(clientId) : null
   const total = lines.reduce((s, l) => s + l.qty * l.price, 0)
   const bollo = total > 77.47
+  const grand = total + (bollo ? 2 : 0)
   const btcEq = total > 0 ? (total / 88300).toFixed(4) : null
   const gateOk = profile.complete
   const checks = [
@@ -106,68 +108,89 @@ export function InvoiceEditor() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18, alignItems: 'start' }}>
-      <div className="stack">
-        <Card title="New invoice">
-          <div className="grid g3">
-            <div className="field"><label>Number</label><input value="2026/0016" readOnly style={{ background: 'var(--surface-alt)', color: 'var(--grey-dark)' }} /><span className="hint">Assigned automatically — not editable</span></div>
-            <div className="field"><label>Date</label><input type="date" defaultValue="2026-07-11" /></div>
-            <div className="field"><label>Due date</label><input type="date" defaultValue="2026-08-10" /></div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 18, alignItems: 'start' }}>
+      {/* the invoice IS the form — edit it like the document it becomes */}
+      <div className="inv-doc">
+        <div className="row" style={{ alignItems: 'flex-start', marginBottom: 36 }}>
+          <div className="row" style={{ gap: 12 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--dark)', color: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 600 }}>{profile.initials}</div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>{profile.name}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--grey-dark)' }}>{profile.address}<br />P.IVA {profile.piva} · C.F. {profile.cf}</div>
+            </div>
           </div>
-        </Card>
-
-        <Card title="Client">
-          <div className="field">
-            <label>Select client</label>
-            <select value={clientId} onChange={e => setClientId(e.target.value)}>
-              <option value="">— search by name or VAT ID —</option>
-              {clients.map(c => <option key={c.id} value={c.id}>{c.name} · {c.vat}</option>)}
-            </select>
-            <span className="hint">New client? <Link to="/clienti/nuovo" style={{ color: 'var(--orange-deep)' }}>Add them</Link> — Italian P.IVA autofills their details.</span>
+          <span className="spacer" />
+          <div style={{ textAlign: 'right' }}>
+            <div className="doc-title">Fattura</div>
+            <div className="doc-n">N° 2026/0016 · auto</div>
+            <div style={{ fontSize: 13, color: 'var(--grey-dark)', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end' }}>
+              <span>Issued <input type="date" defaultValue="2026-07-11" style={{ fontSize: 13 }} /></span>
+              <span>Due <input type="date" defaultValue="2026-08-10" style={{ fontSize: 13 }} /></span>
+            </div>
           </div>
-        </Card>
+        </div>
 
-        <Card title="Lines">
-          <div className="stack" style={{ gap: 10 }}>
-            {lines.map((l, idx) => (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 120px 110px', gap: 10, alignItems: 'end' }}>
-                <div className="field"><label>Description</label><input value={l.desc} placeholder="e.g. Development consulting — July" onChange={e => setLines(ls => ls.map((x, i) => i === idx ? { ...x, desc: e.target.value } : x))} /></div>
-                <div className="field"><label>Qty</label><input type="number" value={l.qty} min={1} onChange={e => setLines(ls => ls.map((x, i) => i === idx ? { ...x, qty: +e.target.value } : x))} /></div>
-                <div className="field"><label>Price (€)</label><input type="number" value={l.price || ''} placeholder="0.00" onChange={e => setLines(ls => ls.map((x, i) => i === idx ? { ...x, price: +e.target.value } : x))} /></div>
-                <div className="num" style={{ paddingBottom: 9, fontWeight: 600 }}>{fmt(l.qty * l.price)}</div>
+        <div style={{ marginBottom: 32 }}>
+          <div className="doc-n" style={{ marginBottom: 6 }}>BILL TO</div>
+          <div className={'inv-billto' + (client ? ' filled' : '')} style={{ display: 'inline-block' }}>
+            {client ? (
+              <div className="row" style={{ gap: 14 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{client.name}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--grey-dark)' }}>{client.vat} · {client.email}</div>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => setClientId('')}>Change</button>
               </div>
-            ))}
-            <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setLines(ls => [...ls, { desc: '', qty: 1, price: 0 }])}>+ Add line</button>
-          </div>
-          <div className="divider" />
-          <div className="stack" style={{ gap: 6 }}>
-            {bollo && (
-              <div className="row" style={{ fontSize: 14 }}>
-                <span>Marca da bollo <span title="Required on no-VAT invoices above €77.47" style={{ cursor: 'help', color: 'var(--grey)' }}>ⓘ</span></span>
-                <span className="spacer" /><span className="num">€ 2,00</span>
+            ) : (
+              <div>
+                <select value={clientId} onChange={e => setClientId(e.target.value)} style={{ fontSize: 14, minWidth: 220 }}>
+                  <option value="">+ Select or add a client…</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.name} · {c.vat}</option>)}
+                </select>
+                <div style={{ fontSize: 12, color: 'var(--grey)', marginTop: 4 }}>New client? <Link to="/clienti/nuovo" style={{ color: 'var(--orange-deep)' }}>Add them</Link> — Italian P.IVA autofills everything.</div>
               </div>
             )}
-            <div className="row" style={{ fontSize: 17, fontWeight: 600 }}>
-              <span>Total</span><span className="spacer" />
-              <span className="num">{fmt(total + (bollo ? 2 : 0))}</span>
-            </div>
-            {btcEq && <div style={{ fontSize: 13, color: 'var(--grey-dark)', textAlign: 'right' }}>≈ {btcEq} BTC at the current rate — indicative only</div>}
           </div>
-        </Card>
+        </div>
 
-        <Card title="Payment methods on this invoice">
-          <div className="stack" style={{ gap: 8 }}>
+        <div className="inv-line head"><span>Description</span><span style={{ textAlign: 'right' }}>Qty</span><span style={{ textAlign: 'right' }}>Price</span><span style={{ textAlign: 'right' }}>Amount</span><span /></div>
+        {lines.map((l, idx) => (
+          <div key={idx} className="inv-line">
+            <input value={l.desc} placeholder="Describe the work…" onChange={e => setLines(ls => ls.map((x, i) => i === idx ? { ...x, desc: e.target.value } : x))} />
+            <input type="number" value={l.qty} min={1} onChange={e => setLines(ls => ls.map((x, i) => i === idx ? { ...x, qty: +e.target.value } : x))} />
+            <input type="number" value={l.price || ''} placeholder="0.00" onChange={e => setLines(ls => ls.map((x, i) => i === idx ? { ...x, price: +e.target.value } : x))} />
+            <span className="amt">{fmt(l.qty * l.price)}</span>
+            <button className="rm" aria-label="Remove line" onClick={() => setLines(ls => ls.length > 1 ? ls.filter((_, i) => i !== idx) : ls)}>×</button>
+          </div>
+        ))}
+        <button className="inv-addline" onClick={() => setLines(ls => [...ls, { desc: '', qty: 1, price: 0 }])}>+ Add line</button>
+
+        <div className="inv-totals" style={{ marginTop: 24 }}>
+          <div className="t-row"><span style={{ color: 'var(--grey-dark)' }}>Subtotal</span><span className="num">{fmt(total)}</span></div>
+          {bollo && <div className="t-row"><span style={{ color: 'var(--grey-dark)' }}>Marca da bollo <span title="Required on no-VAT invoices above €77.47" style={{ cursor: 'help' }}>ⓘ</span></span><span className="num">€ 2,00</span></div>}
+          <div className="t-row t-total"><span>Total</span><span className="num">{fmt(grand)}</span></div>
+          {btcEq && <div style={{ fontSize: 12, color: 'var(--grey-dark)', textAlign: 'right' }}>≈ {btcEq} BTC at current rate</div>}
+        </div>
+
+        <div style={{ marginTop: 32 }}>
+          <div className="doc-n" style={{ marginBottom: 8 }}>CLIENT CAN PAY WITH</div>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
             {(['BTC', 'USDC', 'EURC', 'IBAN'] as const).map(r => (
-              <label key={r} className="row" style={{ fontSize: 14, cursor: 'pointer' }}>
-                <input type="checkbox" checked={rails[r]} disabled={r === 'EURC'} onChange={() => setRails(x => ({ ...x, [r]: !x[r] }))} />
-                <span>{{ BTC: 'Bitcoin (on-chain)', USDC: 'USDC — Base or Ethereum', EURC: 'EURC (not enabled in your profile)', IBAN: 'Bank transfer (IBAN)' }[r]}</span>
-              </label>
+              <button key={r} className={'rail-chip' + (rails[r] ? ' on' : '')} disabled={r === 'EURC'}
+                title={r === 'EURC' ? 'Not enabled in your accounts' : undefined}
+                onClick={() => setRails(x => ({ ...x, [r]: !x[r] }))}>
+                {rails[r] ? '✓ ' : ''}{{ BTC: 'Bitcoin', USDC: 'USDC', EURC: 'EURC', IBAN: 'Bank transfer' }[r]}
+              </button>
             ))}
           </div>
-        </Card>
+        </div>
+
+        <div className="inv-legal">
+          Operazione senza applicazione dell'IVA ai sensi dell'art. 1, commi 54–89, L. 190/2014 — regime forfettario.
+        </div>
       </div>
 
-      {/* right panel */}
+      {/* right panel — requirements before sending */}
       <div className="stack" style={{ position: 'sticky', top: 96 }}>
         <Card title="Before you send">
           <div className="checklist">
@@ -206,13 +229,13 @@ export function InvoiceEditor() {
               </div>
             </div>
             <div className="divider" />
-            <div style={{ color: 'var(--grey-dark)', marginBottom: 12 }}>Bill to: {clientId ? clientById(clientId).name : '—'}</div>
+            <div style={{ color: 'var(--grey-dark)', marginBottom: 12 }}>Bill to: {client ? client.name : '—'}</div>
             {lines.filter(l => l.desc).map((l, i) => (
               <div key={i} className="row" style={{ fontSize: 13 }}><span>{l.desc} × {l.qty}</span><span className="spacer" /><span className="num">{fmt(l.qty * l.price)}</span></div>
             ))}
             {bollo && <div className="row" style={{ fontSize: 13 }}><span>Marca da bollo</span><span className="spacer" /><span className="num">€ 2,00</span></div>}
             <div className="divider" />
-            <div className="row" style={{ fontWeight: 600 }}><span>Totale</span><span className="spacer" /><span className="num">{fmt(total + (bollo ? 2 : 0))}</span></div>
+            <div className="row" style={{ fontWeight: 600 }}><span>Totale</span><span className="spacer" /><span className="num">{fmt(grand)}</span></div>
             <div style={{ marginTop: 16, fontSize: 11, color: 'var(--grey)' }}>
               Operazione senza applicazione dell'IVA ai sensi dell'art. 1, commi 54–89, L. 190/2014 — regime forfettario.
             </div>

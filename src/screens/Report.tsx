@@ -19,6 +19,19 @@ export default function Report() {
         <Card><Kpi label="Est. contributions" value={fmt(ytd.inps)} sub={profile.cassa} /></Card>
       </div>
 
+      <div className="grid g2">
+        <Card title="YTD capital gains — 33% rate">
+          <div className="kpi"><div className="value" style={{ fontSize: 30 }}>€ 0,00</div><div className="sub">No disposals recorded in 2026 (BTC, USDC)</div></div>
+        </Card>
+        <Card title="YTD capital gains — 26% rate (EUR EMTs)">
+          <div className="kpi"><div className="value" style={{ fontSize: 30 }}>€ 0,00</div><div className="sub">EURC not enabled — reduced rate under L. 199/2025</div></div>
+        </Card>
+      </div>
+      <div className="banner">
+        <span>ⓘ</span>
+        <span><b>Provisional cost-basis method (FIFO)</b> — awaiting your commercialista's confirmation of the final method (FIFO or LIFO). Your lots don't change, only the disposal order.</span>
+      </div>
+
       <Card title="2026 fiscal calendar">
         <div className="grid g3">
           {[

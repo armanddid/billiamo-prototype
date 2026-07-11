@@ -351,6 +351,48 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 }
 .auth-dots button.on { background: var(--orange); }
 
+/* invoice editor as document (Acctual-inspired WYSIWYG) */
+.inv-doc {
+  background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 44px 48px;
+  box-shadow: var(--shadow-card); font-size: 14px;
+}
+.inv-doc input, .inv-doc select {
+  border: none; background: transparent; font-family: inherit; padding: 2px 4px; border-radius: 6px;
+  outline: none; transition: background var(--dur-fast);
+}
+.inv-doc input:hover, .inv-doc select:hover { background: var(--surface-alt); }
+.inv-doc input:focus, .inv-doc select:focus { background: var(--warn-bg); }
+.inv-doc .doc-n { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: var(--grey); }
+.inv-doc .doc-title { font-family: var(--serif); font-size: 24px; font-weight: 600; }
+.inv-line { display: grid; grid-template-columns: 1fr 64px 110px 110px 28px; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--hairline); }
+.inv-line.head { font-family: var(--mono); font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--grey); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.inv-line input[type="number"] { text-align: right; }
+.inv-line .amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+.inv-line .rm { visibility: hidden; background: none; border: none; color: var(--grey); cursor: pointer; font-size: 15px; }
+.inv-line:hover .rm { visibility: visible; }
+.inv-addline {
+  width: 100%; text-align: left; background: none; border: 1px dashed var(--input-border); border-radius: 8px;
+  padding: 9px 12px; color: var(--grey-dark); font-size: 13px; cursor: pointer; margin-top: 10px;
+  transition: all var(--dur-fast);
+}
+.inv-addline:hover { border-color: var(--orange); color: var(--orange-deep); }
+.inv-billto {
+  border: 1px dashed var(--input-border); border-radius: 10px; padding: 12px 16px; min-width: 260px;
+  transition: border-color var(--dur-fast);
+}
+.inv-billto:hover { border-color: var(--grey); }
+.inv-billto.filled { border-style: solid; border-color: var(--border); }
+.inv-totals { margin-left: auto; width: 280px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.inv-totals .t-row { display: flex; justify-content: space-between; }
+.inv-totals .t-total { font-family: var(--serif); font-size: 20px; font-weight: 600; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
+.rail-chip {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--input-border); border-radius: 999px;
+  padding: 5px 14px; font-size: 13px; cursor: pointer; background: #fff; transition: all var(--dur-fast); color: var(--grey-dark);
+}
+.rail-chip.on { border-color: var(--orange); background: var(--warn-bg); color: var(--orange-deep); font-weight: 500; }
+.rail-chip:disabled { opacity: .45; cursor: not-allowed; }
+.inv-legal { font-size: 10.5px; color: var(--grey); margin-top: 28px; border-top: 0.5px solid var(--hairline); padding-top: 12px; }
+
 /* first-run onboarding hero (Acctual-inspired) */
 .ob-hero { margin-bottom: var(--gap-block); }
 .ob-title { font-family: var(--serif); font-size: 24px; font-weight: 600; }
