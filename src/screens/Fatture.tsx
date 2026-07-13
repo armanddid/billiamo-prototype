@@ -68,7 +68,7 @@ export function InvoiceEditor() {
   const [number, setNumber] = useState('2026/0016')
   const [note, setNote] = useState('')
   const [lines, setLines] = useState([{ desc: '', qty: 1, price: 0 }])
-  const [acctIds, setAcctIds] = useState<string[]>(accounts.map(a => a.id))
+  const [acctId, setAcctId] = useState('')
   const [preview, setPreview] = useState(false)
   const [sent, setSent] = useState(false)
   const [toast, showToast] = useToast()
@@ -84,10 +84,9 @@ export function InvoiceEditor() {
     { ok: gateOk, label: 'Fiscal profile complete' },
     { ok: !!clientId, label: 'Client selected' },
     { ok: lines.some(l => l.desc && l.price > 0), label: 'At least one line filled in' },
-    { ok: acctIds.length > 0, label: 'A receiving account is selected' },
+    { ok: !!acctId, label: 'A receiving account is selected' },
   ]
-  const selectedAccts = accounts.filter(a => acctIds.includes(a.id))
-  const availableAccts = accounts.filter(a => !acctIds.includes(a.id))
+  const account = acctId ? accounts.find(a => a.id === acctId) : null
   const canSend = checks.every(c => c.ok)
 
   if (sent) {
@@ -182,26 +181,26 @@ export function InvoiceEditor() {
         </div>
 
         <div style={{ marginTop: 32 }}>
-          <div className="row" style={{ marginBottom: 8 }}>
-            <span className="doc-n">GET PAID TO</span>
-            <span className="spacer" />
-            <Link to="/impostazioni" style={{ fontSize: 12, color: 'var(--orange-deep)' }}>Manage accounts →</Link>
-          </div>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            {selectedAccts.map(a => (
-              <span key={a.id} className="rail-chip on">
-                ✓ {a.label}<span className="rail-acct">· {a.detail}</span>
-                <button className="acct-x" aria-label={`Remove ${a.label}`} onClick={() => setAcctIds(ids => ids.filter(x => x !== a.id))}>×</button>
-              </span>
-            ))}
-            {availableAccts.length > 0 && (
-              <select className="acct-add" value="" onChange={e => e.target.value && setAcctIds(ids => [...ids, e.target.value])}>
-                <option value="">+ Add account…</option>
-                {availableAccts.map(a => <option key={a.id} value={a.id}>{a.label} · {a.detail}</option>)}
-              </select>
+          <div className="doc-n" style={{ marginBottom: 6 }}>GET PAID TO</div>
+          <div className={'inv-billto' + (account ? ' filled' : '')} style={{ display: 'inline-block' }}>
+            {account ? (
+              <div className="row" style={{ gap: 14 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{account.label}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--grey-dark)' }}>{account.detail}</div>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => setAcctId('')}>Change</button>
+              </div>
+            ) : (
+              <div>
+                <select value={acctId} onChange={e => setAcctId(e.target.value)} style={{ fontSize: 14, minWidth: 240 }}>
+                  <option value="">+ Select a receiving account…</option>
+                  {accounts.map(a => <option key={a.id} value={a.id}>{a.label} · {a.detail}</option>)}
+                </select>
+                <div style={{ fontSize: 12, color: 'var(--grey)', marginTop: 4 }}>Where this invoice gets paid. <Link to="/impostazioni" style={{ color: 'var(--orange-deep)' }}>Manage accounts</Link> — money always goes straight to you.</div>
+              </div>
             )}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--grey)', marginTop: 6 }}>The client will see these on the payment page and pick one. Money always goes straight to you.</div>
         </div>
 
         <div style={{ marginTop: 28 }}>
