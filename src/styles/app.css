@@ -391,6 +391,18 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 }
 .rail-chip.on { border-color: var(--orange); background: var(--warn-bg); color: var(--orange-deep); font-weight: 500; }
 .rail-chip:disabled { opacity: .45; cursor: not-allowed; }
+.rail-chip .rail-acct { color: var(--grey); font-size: 11px; font-weight: 400; }
+.rail-chip.on .rail-acct { color: var(--orange-deep); opacity: .7; }
+.inv-num-input {
+  width: 110px; text-align: right; border: 1px solid transparent; border-radius: 6px; padding: 2px 6px;
+  font-family: var(--mono); font-size: 13px; background: var(--surface-alt); color: var(--ink);
+}
+.inv-num-input:focus { border-color: var(--orange); outline: none; background: #fff; }
+.inv-note {
+  width: 100%; border: 1px solid var(--input-border); border-radius: var(--radius-md); padding: 10px 12px;
+  font-size: 13.5px; resize: vertical; outline: none; background: #fff; font-family: var(--sans);
+}
+.inv-note:focus { border-color: var(--orange); }
 .inv-legal { font-size: 10.5px; color: var(--grey); margin-top: 28px; border-top: 0.5px solid var(--hairline); padding-top: 12px; }
 
 /* first-run onboarding hero (Acctual-inspired) */

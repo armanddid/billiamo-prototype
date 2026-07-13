@@ -28,7 +28,17 @@ export const profile = {
   iban: 'IT60 X054 2811 1010 0000 0123 456',
   defaultMethod: 'USDC' as Rail,
   plan: 'pro' as 'free' | 'pro',
+  twoFactor: false,
 }
+
+// Saved payment methods, derived from the accounts in Settings. The invoice
+// editor offers exactly these — a method with no backing account is disabled.
+export const payMethods: { rail: Rail; label: string; account: string | null }[] = [
+  { rail: 'BTC', label: 'Bitcoin', account: 'Ledger — BTC' },
+  { rail: 'USDC', label: 'USDC', account: 'Metamask — Base' },
+  { rail: 'EURC', label: 'EURC', account: null },
+  { rail: 'IBAN', label: 'Bank transfer', account: 'Banca Intesa' },
+]
 
 export const clients = [
   { id: 'c1', type: 'non_eu_business' as ClientType, name: 'Nakamoto Labs Inc.', country: 'USA', vat: 'EIN 84-2931077', email: 'billing@nakamotolabs.io', invoiced: 18400, pec: '', dest: '' },

@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Card, Tabs, useToast } from '../components/ui'
+import { Card, Tabs, Chip, Modal, FakeQr, useToast } from '../components/ui'
 import { profile } from '../data/fake'
 
 export default function Account() {
   const [tab, setTab] = useState('Fiscal profile')
   const [regime, setRegime] = useState(profile.regime)
+  const [twoFA, setTwoFA] = useState(profile.twoFactor)
+  const [setupOpen, setSetupOpen] = useState(false)
+  const [code, setCode] = useState('')
   const [toast, showToast] = useToast()
 
   return (
@@ -97,20 +100,73 @@ export default function Account() {
       )}
 
       {tab === 'Login & data' && (
-        <Card title="Login & data" style={{ maxWidth: 620 }}>
-          <div className="row" style={{ marginBottom: 18 }}>
-            <div className="rail-avatar" style={{ width: 44, height: 44 }}>{profile.initials}</div>
-            <div>
-              <div style={{ fontWeight: 600 }}>{profile.name}</div>
-              <div style={{ fontSize: 13, color: 'var(--grey-dark)' }}>{profile.email} · signed in with Google</div>
+        <div className="stack" style={{ maxWidth: 620 }}>
+          <Card title="Login">
+            <div className="row">
+              <div className="rail-avatar" style={{ width: 44, height: 44 }}>{profile.initials}</div>
+              <div>
+                <div style={{ fontWeight: 600 }}>{profile.name}</div>
+                <div style={{ fontSize: 13, color: 'var(--grey-dark)' }}>{profile.email} · signed in with Google</div>
+              </div>
+            </div>
+          </Card>
+
+          <Card title="Two-factor authentication">
+            <div className="row" style={{ alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13.5, color: 'var(--grey-dark)' }}>
+                  Add a second step at login with an authenticator app (TOTP). Recommended — your account holds tax-sensitive data and payout addresses.
+                </div>
+              </div>
+              <span className="spacer" />
+              {twoFA ? (
+                <Chip label="Enabled" cls="chip-ok" dot />
+              ) : (
+                <button className="btn btn-primary btn-sm" onClick={() => setSetupOpen(true)}>Set up 2FA</button>
+              )}
+            </div>
+            {twoFA && (
+              <div className="row" style={{ marginTop: 12, gap: 8 }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => showToast('New recovery codes generated')}>Recovery codes</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setTwoFA(false); showToast('2FA turned off') }}>Turn off</button>
+              </div>
+            )}
+          </Card>
+
+          <Card title="Your data">
+            <div className="stack" style={{ gap: 10 }}>
+              <button className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => showToast('Export started — you\'ll receive an email with the full package')}>Export all my data (GDPR)</button>
+              <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start', color: 'var(--err)' }} onClick={() => showToast('Invoices are fiscal records: you\'ll receive a full export before deletion')}>Delete account…</button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {setupOpen && (
+        <Modal onClose={() => setSetupOpen(false)}>
+          <div className="card-title">Set up two-factor authentication</div>
+          <p style={{ fontSize: 13.5, color: 'var(--grey-dark)', marginBottom: 16 }}>
+            Scan this QR code with an authenticator app (Google Authenticator, Authy, 1Password), then enter the 6-digit code to confirm.
+          </p>
+          <div className="row" style={{ gap: 20, alignItems: 'flex-start' }}>
+            <FakeQr seed={19} size={132} />
+            <div style={{ flex: 1 }}>
+              <div className="field" style={{ marginBottom: 12 }}>
+                <label>Or enter this key manually</label>
+                <div className="mono" style={{ fontSize: 12, background: 'var(--surface-alt)', padding: '8px 10px', borderRadius: 6, wordBreak: 'break-all' }}>JBSW Y3DP EHPK 3PXP</div>
+              </div>
+              <div className="field">
+                <label>6-digit code</label>
+                <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" className="mono" style={{ letterSpacing: 4, fontSize: 16 }} />
+              </div>
             </div>
           </div>
-          <div className="divider" />
-          <div className="stack" style={{ gap: 10 }}>
-            <button className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => showToast('Export started — you\'ll receive an email with the full package')}>Export all my data (GDPR)</button>
-            <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start', color: 'var(--err)' }} onClick={() => showToast('Invoices are fiscal records: you\'ll receive a full export before deletion')}>Delete account…</button>
+          <div className="row" style={{ marginTop: 18 }}>
+            <span className="spacer" />
+            <button className="btn btn-secondary btn-sm" onClick={() => setSetupOpen(false)}>Cancel</button>
+            <button className="btn btn-primary btn-sm" disabled={code.length !== 6} onClick={() => { setTwoFA(true); setSetupOpen(false); setCode(''); showToast('Two-factor authentication enabled ✓') }}>Enable</button>
           </div>
-        </Card>
+        </Modal>
       )}
       {toast}
     </div>

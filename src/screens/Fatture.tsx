@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Card, Chip, Modal, useToast } from '../components/ui'
-import { invoices, fmt, clientById, clients, lifecycleChip, sdiChip, payChip, profile, type Invoice } from '../data/fake'
-import { FileText, Send, Eye, Bell, ClipboardPaste, AlertCircle, Clock } from 'lucide-react'
+import { invoices, fmt, clientById, clients, payMethods, lifecycleChip, sdiChip, payChip, profile, type Invoice } from '../data/fake'
+import { FileText, Send, Eye, Bell, ClipboardPaste, AlertCircle, Clock, Link2, Save } from 'lucide-react'
 
 /* ---------------- list ---------------- */
 export function InvoiceList() {
@@ -65,10 +65,13 @@ export function InvoiceList() {
 /* ---------------- editor ---------------- */
 export function InvoiceEditor() {
   const [clientId, setClientId] = useState('')
+  const [number, setNumber] = useState('2026/0016')
+  const [note, setNote] = useState('')
   const [lines, setLines] = useState([{ desc: '', qty: 1, price: 0 }])
   const [rails, setRails] = useState({ BTC: true, USDC: true, EURC: false, IBAN: true })
   const [preview, setPreview] = useState(false)
   const [sent, setSent] = useState(false)
+  const [toast, showToast] = useToast()
   const nav = useNavigate()
 
   const client = clientId ? clientById(clientId) : null
@@ -122,7 +125,11 @@ export function InvoiceEditor() {
           <span className="spacer" />
           <div style={{ textAlign: 'right' }}>
             <div className="doc-title">Fattura</div>
-            <div className="doc-n">N° 2026/0016 · auto</div>
+            <div className="row" style={{ justifyContent: 'flex-end', gap: 4, marginTop: 2 }}>
+              <span className="doc-n">N°</span>
+              <input value={number} onChange={e => setNumber(e.target.value)} className="inv-num-input" aria-label="Invoice number" />
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--grey)' }}>Auto-assigned — edit only if needed</div>
             <div style={{ fontSize: 13, color: 'var(--grey-dark)', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end' }}>
               <span>Issued <input type="date" defaultValue="2026-07-11" style={{ fontSize: 13 }} /></span>
               <span>Due <input type="date" defaultValue="2026-08-10" style={{ fontSize: 13 }} /></span>
@@ -173,16 +180,31 @@ export function InvoiceEditor() {
         </div>
 
         <div style={{ marginTop: 32 }}>
-          <div className="doc-n" style={{ marginBottom: 8 }}>CLIENT CAN PAY WITH</div>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            {(['BTC', 'USDC', 'EURC', 'IBAN'] as const).map(r => (
-              <button key={r} className={'rail-chip' + (rails[r] ? ' on' : '')} disabled={r === 'EURC'}
-                title={r === 'EURC' ? 'Not enabled in your accounts' : undefined}
-                onClick={() => setRails(x => ({ ...x, [r]: !x[r] }))}>
-                {rails[r] ? '✓ ' : ''}{{ BTC: 'Bitcoin', USDC: 'USDC', EURC: 'EURC', IBAN: 'Bank transfer' }[r]}
-              </button>
-            ))}
+          <div className="row" style={{ marginBottom: 8 }}>
+            <span className="doc-n">CLIENT CAN PAY WITH</span>
+            <span className="spacer" />
+            <Link to="/impostazioni" style={{ fontSize: 12, color: 'var(--orange-deep)' }}>Manage accounts →</Link>
           </div>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            {payMethods.map(m => {
+              const enabled = !!m.account
+              const on = rails[m.rail]
+              return (
+                <button key={m.rail} className={'rail-chip' + (on ? ' on' : '')} disabled={!enabled}
+                  title={enabled ? `Paid to: ${m.account}` : 'No account set up — add one in Settings'}
+                  onClick={() => setRails(x => ({ ...x, [m.rail]: !x[m.rail] }))}>
+                  {on ? '✓ ' : ''}{m.label}
+                  {enabled && <span className="rail-acct">· {m.account}</span>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 28 }}>
+          <div className="doc-n" style={{ marginBottom: 8 }}>NOTE TO CLIENT <span style={{ textTransform: 'none', letterSpacing: 0 }}>(optional)</span></div>
+          <textarea className="inv-note" value={note} onChange={e => setNote(e.target.value)}
+            placeholder="e.g. Thanks for your business! Payment due within 30 days." rows={2} />
         </div>
 
         <div className="inv-legal">
@@ -207,11 +229,15 @@ export function InvoiceEditor() {
           )}
           <div className="stack" style={{ marginTop: 16, gap: 8 }}>
             <button className="btn btn-secondary" onClick={() => setPreview(true)} disabled={total === 0}><Eye size={16} /> Preview PDF</button>
+            <Link to="/pay/demo" className="btn btn-secondary" style={{ justifyContent: 'center' }}><Link2 size={16} /> Preview payment link</Link>
+            <div className="divider" style={{ margin: '4px 0' }} />
+            <button className="btn btn-secondary" onClick={() => showToast('Draft saved')}><Save size={16} /> Save draft</button>
             <button className="btn btn-primary" disabled={!canSend} onClick={() => setSent(true)}><Send size={16} /> Create & send</button>
           </div>
           <div style={{ marginTop: 10, fontSize: 12, color: 'var(--grey)' }}>Draft autosaved · 12:04</div>
         </Card>
       </div>
+      {toast}
 
       {preview && (
         <Modal onClose={() => setPreview(false)}>
