@@ -31,13 +31,11 @@ export const profile = {
   twoFactor: false,
 }
 
-// Saved payment methods, derived from the accounts in Settings. The invoice
-// editor offers exactly these — a method with no backing account is disabled.
-export const payMethods: { rail: Rail; label: string; account: string | null }[] = [
-  { rail: 'BTC', label: 'Bitcoin', account: 'Ledger — BTC' },
-  { rail: 'USDC', label: 'USDC', account: 'Metamask — Base' },
-  { rail: 'EURC', label: 'EURC', account: null },
-  { rail: 'IBAN', label: 'Bank transfer', account: 'Banca Intesa' },
+// The freelancer's receiving accounts, shared between Settings and the invoice
+// editor. On an invoice you pick which of these should receive the money.
+export const accounts: { id: string; label: string; detail: string; kind: 'crypto' | 'bank' }[] = [
+  ...profile.settlement.map(w => ({ id: w.id, label: w.label, detail: w.chain, kind: 'crypto' as const })),
+  { id: 'bank1', label: 'Banca Intesa — business', detail: 'IBAN · SEPA', kind: 'bank' as const },
 ]
 
 export const clients = [

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Card, Chip, Modal, useToast } from '../components/ui'
-import { invoices, fmt, clientById, clients, payMethods, lifecycleChip, sdiChip, payChip, profile, type Invoice } from '../data/fake'
+import { invoices, fmt, clientById, clients, accounts, lifecycleChip, sdiChip, payChip, profile, type Invoice } from '../data/fake'
 import { FileText, Send, Eye, Bell, ClipboardPaste, AlertCircle, Clock, Link2, Save } from 'lucide-react'
 
 /* ---------------- list ---------------- */
@@ -68,7 +68,7 @@ export function InvoiceEditor() {
   const [number, setNumber] = useState('2026/0016')
   const [note, setNote] = useState('')
   const [lines, setLines] = useState([{ desc: '', qty: 1, price: 0 }])
-  const [rails, setRails] = useState({ BTC: true, USDC: true, EURC: false, IBAN: true })
+  const [acctIds, setAcctIds] = useState<string[]>(accounts.map(a => a.id))
   const [preview, setPreview] = useState(false)
   const [sent, setSent] = useState(false)
   const [toast, showToast] = useToast()
@@ -84,8 +84,10 @@ export function InvoiceEditor() {
     { ok: gateOk, label: 'Fiscal profile complete' },
     { ok: !!clientId, label: 'Client selected' },
     { ok: lines.some(l => l.desc && l.price > 0), label: 'At least one line filled in' },
-    { ok: Object.values(rails).some(Boolean), label: 'A payment method is active' },
+    { ok: acctIds.length > 0, label: 'A receiving account is selected' },
   ]
+  const selectedAccts = accounts.filter(a => acctIds.includes(a.id))
+  const availableAccts = accounts.filter(a => !acctIds.includes(a.id))
   const canSend = checks.every(c => c.ok)
 
   if (sent) {
@@ -181,24 +183,25 @@ export function InvoiceEditor() {
 
         <div style={{ marginTop: 32 }}>
           <div className="row" style={{ marginBottom: 8 }}>
-            <span className="doc-n">CLIENT CAN PAY WITH</span>
+            <span className="doc-n">GET PAID TO</span>
             <span className="spacer" />
             <Link to="/impostazioni" style={{ fontSize: 12, color: 'var(--orange-deep)' }}>Manage accounts →</Link>
           </div>
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            {payMethods.map(m => {
-              const enabled = !!m.account
-              const on = rails[m.rail]
-              return (
-                <button key={m.rail} className={'rail-chip' + (on ? ' on' : '')} disabled={!enabled}
-                  title={enabled ? `Paid to: ${m.account}` : 'No account set up — add one in Settings'}
-                  onClick={() => setRails(x => ({ ...x, [m.rail]: !x[m.rail] }))}>
-                  {on ? '✓ ' : ''}{m.label}
-                  {enabled && <span className="rail-acct">· {m.account}</span>}
-                </button>
-              )
-            })}
+            {selectedAccts.map(a => (
+              <span key={a.id} className="rail-chip on">
+                ✓ {a.label}<span className="rail-acct">· {a.detail}</span>
+                <button className="acct-x" aria-label={`Remove ${a.label}`} onClick={() => setAcctIds(ids => ids.filter(x => x !== a.id))}>×</button>
+              </span>
+            ))}
+            {availableAccts.length > 0 && (
+              <select className="acct-add" value="" onChange={e => e.target.value && setAcctIds(ids => [...ids, e.target.value])}>
+                <option value="">+ Add account…</option>
+                {availableAccts.map(a => <option key={a.id} value={a.id}>{a.label} · {a.detail}</option>)}
+              </select>
+            )}
           </div>
+          <div style={{ fontSize: 12, color: 'var(--grey)', marginTop: 6 }}>The client will see these on the payment page and pick one. Money always goes straight to you.</div>
         </div>
 
         <div style={{ marginTop: 28 }}>
