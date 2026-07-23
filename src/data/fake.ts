@@ -116,11 +116,75 @@ export const invoices: Invoice[] = [
   },
 ]
 
+// A "lot" is crypto received against an invoice, with the EUR value locked in at
+// that moment. Selling or spending it later consumes lots oldest-first (FIFO).
 export const lots = [
-  { id: 'l1', asset: 'BTC', qty: '0,08154', eur: 7200, rate: '88.298 €/BTC', src: 'Kraken', ts: '2026-05-20 14:32', invoice: '2026/0010', disposed: false },
-  { id: 'l2', asset: 'BTC', qty: '0,01710', eur: 1500, rate: '87.719 €/BTC', src: 'Kraken', ts: '2026-06-04 09:15', invoice: '2026/0011', disposed: false },
-  { id: 'l3', asset: 'USDC', qty: '1.802,41', eur: 1800, rate: '0,9987 €/USDC', src: 'CoinGecko', ts: '2026-06-30 16:48', invoice: '2026/0013', disposed: false },
+  { id: 'l1', asset: 'BTC', qty: '0,08154', qtyNum: 0.08154, eur: 7200, rate: '88.298 €/BTC', unit: 88298, src: 'Kraken', ts: '2026-05-20 14:32', invoice: '2026/0010', disposed: false },
+  { id: 'l2', asset: 'BTC', qty: '0,01710', qtyNum: 0.01710, eur: 1500, rate: '87.719 €/BTC', unit: 87719, src: 'Kraken', ts: '2026-06-04 09:15', invoice: '2026/0011', disposed: false },
+  { id: 'l3', asset: 'USDC', qty: '1.802,41', qtyNum: 1802.41, eur: 1800, rate: '0,9987 €/USDC', unit: 0.9987, src: 'CoinGecko', ts: '2026-06-30 16:48', invoice: '2026/0013', disposed: false },
 ]
+
+// Capital-gains tax rate by asset: 33% crypto, 26% for EUR-pegged stablecoins
+// (reduced-rate carve-out, L. 199/2025 — pending verification).
+export const taxRate = (asset: string) => (asset === 'EURC' ? 0.26 : 0.33)
+
+export interface Disposition {
+  id: string; date: string; asset: string; amount: number; eurReceived: number
+  where: string; ref?: string
+  costBasis: number; gain: number; rate: number
+  consumed: { lot: string; invoice: string; amount: number; basis: number }[]
+  editableUntil: string | null
+}
+
+export const dispositions: Disposition[] = [
+  {
+    id: 'd1', date: '2026-06-18', asset: 'BTC', amount: 0.03, eurReceived: 2900,
+    where: 'Sold on Kraken EU', ref: 'KRK-88213',
+    costBasis: 2648.94, gain: 251.06, rate: 0.33,
+    consumed: [{ lot: 'l1', invoice: '2026/0010', amount: 0.03, basis: 2648.94 }],
+    editableUntil: null, // locked — logged more than 24h ago
+  },
+]
+
+// How much of each lot is left once everything sold or spent is subtracted.
+export const remainingByLot = (disps: Disposition[]) => {
+  const used: Record<string, number> = {}
+  for (const d of disps) for (const c of d.consumed) used[c.lot] = (used[c.lot] ?? 0) + c.amount
+  return Object.fromEntries(lots.map(l => [l.id, Math.max(0, l.qtyNum - (used[l.id] ?? 0))])) as Record<string, number>
+}
+
+// What's left after dispositions, grouped by asset.
+export const holdings = (disps: Disposition[]) => {
+  const left = remainingByLot(disps)
+  const by: Record<string, { asset: string; amount: number; basis: number; lots: number }> = {}
+  for (const l of lots) {
+    const rem = left[l.id]
+    if (rem <= 0.0000001) continue
+    const b = by[l.asset] ?? (by[l.asset] = { asset: l.asset, amount: 0, basis: 0, lots: 0 })
+    b.amount += rem
+    b.basis += rem * l.unit
+    b.lots += 1
+  }
+  return Object.values(by)
+}
+
+export const fmtQty = (n: number, asset: string) =>
+  n.toLocaleString('it-IT', { minimumFractionDigits: asset === 'USDC' ? 2 : 5, maximumFractionDigits: asset === 'USDC' ? 2 : 5 })
+
+// Walk lots oldest-first, returning which ones a sale would consume.
+export function fifoPreview(asset: string, amount: number, disps: Disposition[]) {
+  const rem = remainingByLot(disps)
+  let left = amount
+  const consumed: { lot: string; invoice: string; amount: number; basis: number; ts: string }[] = []
+  for (const l of lots.filter(x => x.asset === asset && rem[x.id] > 0)) {
+    if (left <= 0) break
+    const take = Math.min(left, rem[l.id])
+    consumed.push({ lot: l.id, invoice: l.invoice, amount: take, basis: take * l.unit, ts: l.ts })
+    left -= take
+  }
+  const costBasis = consumed.reduce((s, c) => s + c.basis, 0)
+  return { consumed, costBasis, short: left > 0 ? left : 0 }
+}
 
 export const snapshots = [
   { id: 's2', v: 2, date: '2026-07-01 10:22', by: 'Giulia', sent: true, note: 'Inviata al commercialista' },
